@@ -1,0 +1,29 @@
+# Build files - TOO LARGE FOR GITHUB
+build/
+dist/
+comercial/
+*.pkg
+*.exe
+*.spec
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Database & history
+favorites.db
+command_history.json
+*.db
+
+# Secrets
+.env
+*.key
+
+# IDE
+.idea/
