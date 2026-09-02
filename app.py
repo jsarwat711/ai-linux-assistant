@@ -21,7 +21,7 @@ import requests
 ###############################################################
 APP_NAME      = "AI Linux Command Assistant"
 VERSION       = "1.0.0"
-DEFAULT_MODEL = "llama3"
+DEFAULT_MODEL = "llama3-8b"
 FAVORITES_DB  = "favorites.db"
 HISTORY_FILE  = "command_history.json"
 OLLAMA_URL    = os.environ.get("OLLAMA_URL", "http://localhost:11434")
@@ -356,7 +356,10 @@ def db_delete(fav_id):
     db.execute("DELETE FROM favorites WHERE id=?", (fav_id,))
     db.commit()
 
-def db_get_all(category_filter=None, search_kw=None):
+@st.cache_data(ttl=30)  # Cache for 30 seconds
+def db_get_all_cached(category_filter=None, search_kw=None):
+    return db_get_all(category_filter, search_kw)
+
     db = get_db()
     query = "SELECT id,name,command,category,description,created_at FROM favorites"
     params = []
@@ -446,14 +449,15 @@ def check_ollama():
 
 def stream_ollama(model, messages):
     GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-    GROQ_MODELS  = {
-        "llama3":    "llama3-8b-8192",
-        "llama3.2":  "llama-3.2-90b-text-preview",
-        "mistral":   "mixtral-8x7b-32768",
-        "gemma2":    "gemma2-9b-it",
-        "codellama": "llama3-8b-8192",
-        "phi3":      "llama3-8b-8192",
+    GROQ_MODELS = {
+        "llama3": "llama3-8b-8192",  # Fast ⚡
+        "llama3.2": "llama3-8b-8192",  # Fast ⚡ (changed)
+        "mistral": "mixtral-8x7b-32768",
+        "gemma2": "gemma2-9b-it",
+        "codellama": "llama3-8b-8192",  # Fast ⚡
+        "phi3": "llama3-8b-8192",  # Fast ⚡
     }
+
     groq_model = GROQ_MODELS.get(model, "llama3-8b-8192")
 
     try:
