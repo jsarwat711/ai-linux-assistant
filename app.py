@@ -418,6 +418,22 @@ if not st.session_state.command_history:
 ###############################################################
 # OLLAMA HELPERS
 ###############################################################
+def get_ollama_models():
+    """Return static list of Groq supported models"""
+    return [
+        "llama3",
+        "llama3.2",
+        "mistral",
+        "gemma2",
+        "codellama",
+        "phi3"
+    ]
+
+def check_ollama():   # ← already exists, keep it as is
+
+###############################################################
+# OLLAMA HELPERS
+###############################################################
 def check_ollama():
     api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
