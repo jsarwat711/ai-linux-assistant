@@ -419,42 +419,63 @@ if not st.session_state.command_history:
 # OLLAMA HELPERS
 ###############################################################
 def check_ollama():
+    api_key = os.environ.get("GROQ_API_KEY", "")
+    if not api_key:
+        return False
     try:
-        r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
+        r = requests.get(
+            "https://api.groq.com/openai/v1/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=5
+        )
         return r.status_code == 200
     except:
         return False
 
-def get_ollama_models():
-    try:
-        r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=3)
-        if r.status_code == 200:
-            return [m['name'] for m in r.json().get('models', [])]
-    except:
-        pass
-    return []
 
 def stream_ollama(model, messages):
-    """Yields text chunks from Ollama streaming API."""
+    GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+    GROQ_MODELS  = {
+        "llama3":    "llama3-8b-8192",
+        "llama3.2":  "llama-3.2-90b-text-preview",
+        "mistral":   "mixtral-8x7b-32768",
+        "gemma2":    "gemma2-9b-it",
+        "codellama": "llama3-8b-8192",
+        "phi3":      "llama3-8b-8192",
+    }
+    groq_model = GROQ_MODELS.get(model, "llama3-8b-8192")
+
     try:
         r = requests.post(
-            f"{OLLAMA_URL}/api/chat",
-            json={"model": model, "messages": messages, "stream": True},
-            stream=True, timeout=120
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type":  "application/json"
+            },
+            json={
+                "model":    groq_model,
+                "messages": messages,
+                "stream":   True
+            },
+            stream=True,
+            timeout=60
         )
         for line in r.iter_lines():
             if line:
+                line = line.decode("utf-8")
+                if line.startswith("data: "):
+                    line = line[6:]
+                if line.strip() == "[DONE]":
+                    break
                 try:
-                    data = json.loads(line)
-                    chunk = data.get("message", {}).get("content", "")
+                    data  = json.loads(line)
+                    chunk = data["choices"][0]["delta"].get("content","")
                     if chunk:
                         yield chunk
-                    if data.get("done"):
-                        break
                 except:
                     continue
     except Exception as e:
-        yield f"\n⚠️ Ollama Error: {e}"
+        yield f"\n⚠️ API Error: {e}"
 
 ###############################################################
 # COMMAND RUNNER
