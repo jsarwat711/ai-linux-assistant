@@ -429,11 +429,6 @@ def get_ollama_models():
         "phi3"
     ]
 
-def check_ollama():   # ← already exists, keep it as is
-
-###############################################################
-# OLLAMA HELPERS
-###############################################################
 def check_ollama():
     api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
