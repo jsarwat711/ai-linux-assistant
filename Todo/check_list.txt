@@ -1,0 +1,7 @@
+☐ Replace STORE_URL with your real Gumroad URL
+☐ Replace GUMROAD_PRODUCT_ID in license_manager.py
+☐ Add icon.ico to project folder
+☐ Run build command above
+☐ Test: dist\AI_Command_Assistant.exe
+☐ Upload to Gumroad
+☐ Publish! 🎉

@@ -1,0 +1,15 @@
+pyinstaller ^
+  --onefile ^
+  --windowed ^
+  --name "AI_Command_Assistant" ^
+  --icon "icon.ico" ^
+  --add-data "license_manager.py;." ^
+  --hidden-import "PyQt5" ^
+  --hidden-import "ollama" ^
+  --hidden-import "requests" ^
+  --hidden-import "sqlite3" ^
+  --hidden-import "pygments" ^
+  --collect-all "PyQt5" ^
+  --collect-all "ollama" ^
+  --noconsole ^
+  ai_linux_assistant.py
