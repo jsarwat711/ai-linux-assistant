@@ -308,16 +308,13 @@ st.markdown(DARK_CSS, unsafe_allow_html=True)
 # SESSION STATE INIT
 ###############################################################
 def init_state():
-    # Auto check Groq on first load
-    if st.session_state.ollama_status is None:
-        st.session_state.ollama_status = check_ollama()
     defaults = {
-        "chat_history":     [],        # [{role, content, timestamp}]
-        "terminal_lines":   [],        # [{text, type}] type: normal/error/header
-        "command_history":  [],        # [str]
+        "chat_history":     [],
+        "terminal_lines":   [],
+        "command_history":  [],
         "last_ai_command":  "",
         "current_model":    DEFAULT_MODEL,
-        "ollama_status":    None,      # True/False/None
+        "ollama_status":    None,
         "is_streaming":     False,
         "streaming_buffer": "",
     }
@@ -326,6 +323,11 @@ def init_state():
             st.session_state[k] = v
 
 init_state()
+
+# Auto check Groq on first load  ← FIXED VERSION
+if st.session_state.get("ollama_status") is None:
+    st.session_state.ollama_status = check_ollama()
+
 
 ###############################################################
 # FAVORITES DATABASE
