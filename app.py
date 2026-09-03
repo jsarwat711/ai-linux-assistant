@@ -17,6 +17,67 @@ import time
 import requests
 
 ###############################################################
+# AUTHENTICATION
+###############################################################
+def check_password():
+    """Simple password protection"""
+
+    # ── Define users (add more as needed) ──
+    USERS = {
+        "admin":  os.environ.get("ADMIN_PASSWORD",  "jo.711"),
+        "guest":  os.environ.get("GUEST_PASSWORD",  "guest123"),
+    }
+
+    def login_form():
+        st.markdown("""
+        <div style="
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 40px;
+            background: #1e1e2e;
+            border: 1px solid #313244;
+            border-radius: 16px;
+            text-align: center;
+        ">
+            <div style="font-size:48px;">🐧</div>
+            <h2 style="color:#89b4fa;font-family:Consolas;">AI Linux Assistant</h2>
+            <p style="color:#6c7086;font-size:13px;">Enter your credentials to continue</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        with st.form("login_form"):
+            username = st.text_input(
+                "Username",
+                placeholder="Enter username"
+            )
+            password = st.text_input(
+                "Password",
+                type="password",
+                placeholder="Enter password"
+            )
+            submit = st.form_submit_button(
+                "🔐 Login",
+                use_container_width=True,
+                type="primary"
+            )
+
+            if submit:
+                if username in USERS and USERS[username] == password:
+                    st.session_state["authenticated"] = True
+                    st.session_state["username"] = username
+                    st.rerun()
+                else:
+                    st.error("❌ Wrong username or password!")
+
+    # ── Check if already logged in ──
+    if not st.session_state.get("authenticated", False):
+        login_form()
+        st.stop()   # ← Stops rest of app from loading!
+
+check_password()  # ← Call it before anything else!
+
+
+###############################################################
 # CONFIG
 ###############################################################
 APP_NAME      = "AI Linux Command Assistant"
@@ -96,6 +157,20 @@ section[data-testid="stSidebar"] {
 section[data-testid="stSidebar"] * {
     color: #cdd6f4 !important;
 }
+
+    st.divider()
+    # ── User Info & Logout ─────────────────────────────────
+    st.markdown(
+        f'<div style="color:#6c7086;font-size:12px;">'
+        f'👤 Logged in as: '
+        f'<span style="color:#89b4fa;">'
+        f'{st.session_state.get("username","user")}</span></div>',
+        unsafe_allow_html=True
+    )
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state["authenticated"] = False
+        st.session_state["username"] = ""
+        st.rerun()
 
 /* ── Inputs ── */
 input, textarea, .stTextInput input, .stTextArea textarea {
@@ -769,15 +844,20 @@ with tab_chat:
 
     # ── Chat Input ─────────────────────────────────────────
     st.divider()
-    col_input, col_send = st.columns([5, 1])
-    with col_input:
-        user_input = st.text_input(
-            "message", label_visibility="collapsed",
-            placeholder="Ask about any Linux command...",
-            key="chat_input_box"
-        )
-    with col_send:
-        send_btn = st.button("⮕ Send", use_container_width=True, type="primary")
+    with st.form(key="chat_form", clear_on_submit=True):
+        col_input, col_send = st.columns([5, 1])
+        with col_input:
+            user_input = st.text_input(
+                "message", label_visibility="collapsed",
+                placeholder="Ask about any Linux command... (Press Enter to send)",
+                key="chat_input_box"
+            )
+        with col_send:
+            send_btn = st.form_submit_button(
+                "⮕ Send",
+                use_container_width=True,
+                type="primary"
+            )
         # TEMPORARY TEST BUTTON
         if st.button("🧪 Test API Directly", use_container_width=True):
             api_key = os.environ.get("GROQ_API_KEY", "")
