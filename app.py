@@ -31,9 +31,10 @@ HISTORY_FILE = os.path.join(TMP_DIR, "command_history.json")
 OLLAMA_URL    = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
 AVAILABLE_MODELS = [
-    "llama3", "llama3.2", "mistral",
-    "codellama", "gemma2", "phi3"
+    "llama3", "gemma2", "deepseek"
 ]
+
+
 
 CATEGORIES = [
     "General", "System", "Network", "Files",
@@ -471,15 +472,16 @@ def check_ollama():
 def stream_ollama(model, messages):
     GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
     GROQ_MODELS = {
-        "llama3": "llama-3.1-8b-instant",  # ⚡ Fastest
-        "llama3.2": "llama-3.1-8b-instant",  # ⚡ Fast
-        "mistral": "mixtral-8x7b-32768",  # ⚡ Medium
+        "llama3": "openai/gpt-oss-20b",  # ⚡ Fastest
+        "llama3.2": "openai/gpt-oss-20b",  # ⚡ Fast
+        "mistral": "openai/gpt-oss-20b",  # ⚡ Fast
         "gemma2": "gemma2-9b-it",  # ⚡ Fast
-        "codellama": "llama-3.1-8b-instant",  # ⚡ Fast
-        "phi3": "llama-3.1-8b-instant",  # ⚡ Fast
+        "codellama": "openai/gpt-oss-20b",  # ⚡ Fast
+        "phi3": "openai/gpt-oss-20b",  # ⚡ Fast
     }
+    DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b"
 
-    groq_model = GROQ_MODELS.get(model, "llama3-8b-8192")
+    groq_model = GROQ_MODELS.get(model, "openai/gpt-oss-20b")
 
     try:
         r = requests.post(
@@ -791,7 +793,7 @@ with tab_chat:
                             "Content-Type": "application/json"
                         },
                         json={
-                            "model": "llama-3.1-8b-instant",
+                            "model": "openai/gpt-oss-20b",
                             "messages": [
                                 {"role": "user", "content": "Say hello in one word"}
                             ],
