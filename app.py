@@ -600,40 +600,85 @@ if st.session_state.get("ollama_status") is None:
     st.session_state.ollama_status = check_ollama()
 
 ###############################################################
-# ✅ BUG FIX 2: SIDEBAR — single 'with st.sidebar', no nesting
+# SIDEBAR
 ###############################################################
 with st.sidebar:
-    # ── App Title + Role Badge ─────────────────────────────
-    st.markdown(f'<div class="app-title">🐧 {APP_NAME}</div>',
-                unsafe_allow_html=True)
+
+    # ── App Title ──────────────────────────────────────────
     st.markdown(
-        f'<div style="color:#6c7086;font-size:11px;">'
-        f'v{VERSION} · '
-        f'{"👑 Admin" if st.session_state.get("username") == "admin" else "👤 Guest"}'
-        f'</div>',
+        f'<div class="app-title">🐧 {APP_NAME}</div>',
         unsafe_allow_html=True
     )
     st.divider()
 
-    # ── Management Links (Admin only) ──────────────────────
-    if get_permission("can_manage"):
-        st.markdown('<div class="section-header">⚙️ Management</div>',
-                    unsafe_allow_html=True)
-        st.markdown("""
-        <div style="font-size:12px;color:#6c7086;">
-            🔗 <a href="https://share.streamlit.io" target="_blank"
-               style="color:#89b4fa;">Streamlit Cloud</a><br>
-            🔗 <a href="https://github.com" target="_blank"
-               style="color:#89b4fa;">GitHub</a><br>
-            🔗 <a href="https://console.groq.com" target="_blank"
-               style="color:#89b4fa;">Groq Console</a>
+    # ──────────────────────────────────────────────────────
+    # ✅ ACCOUNT BOX — Always visible at top for ALL users
+    # ──────────────────────────────────────────────────────
+    current_user = st.session_state.get("username", "guest")
+    is_admin     = (current_user == "admin")
+
+    if is_admin:
+        role_badge = "👑 Admin"
+        role_color = "#f9e2af"
+    else:
+        role_badge = "👤 Guest"
+        role_color = "#89b4fa"
+
+    st.markdown(
+        f"""
+        <div style="
+            background:#313244;
+            border-radius:10px;
+            padding:12px 14px;
+            margin-bottom:8px;
+            border-left: 4px solid {role_color};
+        ">
+            <div style="color:#6c7086;font-size:11px;">Logged in as</div>
+            <div style="color:{role_color};font-weight:bold;font-size:15px;">
+                {role_badge}: {current_user}
+            </div>
+            <div style="color:#6c7086;font-size:10px;">v{VERSION}</div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True
+    )
+
+    # ✅ LOGOUT BUTTON — Big and visible for everyone
+    if st.button("🚪 Logout", use_container_width=True, type="primary"):
+        st.session_state["authenticated"] = False
+        st.session_state["username"]      = ""
+        st.rerun()
+
+    st.divider()
+
+    # ──────────────────────────────────────────────────────
+    # ✅ ADMIN ONLY SECTION — Completely hidden from guest
+    # ──────────────────────────────────────────────────────
+    if is_admin:
+        st.markdown(
+            '<div class="section-header">⚙️ Admin Management</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            """
+            <div style="font-size:12px;color:#6c7086;line-height:2;">
+                🔗 <a href="https://share.streamlit.io" target="_blank"
+                   style="color:#89b4fa;">Streamlit Cloud</a><br>
+                🔗 <a href="https://github.com" target="_blank"
+                   style="color:#89b4fa;">GitHub</a><br>
+                🔗 <a href="https://console.groq.com" target="_blank"
+                   style="color:#89b4fa;">Groq Console</a>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         st.divider()
 
     # ── AI API Status ──────────────────────────────────────
-    st.markdown('<div class="section-header">🔌 AI API Status</div>',
-                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">🔌 AI API Status</div>',
+        unsafe_allow_html=True
+    )
     if st.button("Check Connection", use_container_width=True):
         st.session_state.ollama_status = check_ollama()
 
@@ -644,19 +689,23 @@ with st.sidebar:
     elif status is False:
         st.markdown('<span class="badge-error">❌ Offline</span>',
                     unsafe_allow_html=True)
-        st.info("⚠️ Check GROQ_API_KEY in Streamlit secrets!")
+        if is_admin:
+            st.info("⚠️ Check GROQ_API_KEY in Streamlit secrets!")
     else:
         st.markdown('<span class="badge-warning">⚡ Not checked</span>',
                     unsafe_allow_html=True)
     st.divider()
 
     # ── Model Selector ─────────────────────────────────────
-    st.markdown('<div class="section-header">🧠 AI Model</div>',
-                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">🧠 AI Model</div>',
+        unsafe_allow_html=True
+    )
     live_models = get_ollama_models()
     model_list  = live_models if live_models else AVAILABLE_MODELS
     if st.session_state.current_model not in model_list:
         model_list = [st.session_state.current_model] + model_list
+
     selected_model = st.selectbox(
         "Select Model", model_list,
         index=model_list.index(st.session_state.current_model),
@@ -665,15 +714,19 @@ with st.sidebar:
     if selected_model != st.session_state.current_model:
         st.session_state.current_model = selected_model
         st.rerun()
+
     st.markdown(
-        f'<div style="color:#6c7086;font-size:11px;">📦 {len(live_models)} model(s)</div>',
+        f'<div style="color:#6c7086;font-size:11px;">'
+        f'📦 {len(live_models)} model(s)</div>',
         unsafe_allow_html=True
     )
     st.divider()
 
     # ── Quick Ask ──────────────────────────────────────────
-    st.markdown('<div class="section-header">⚡ Quick Ask</div>',
-                unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-header">⚡ Quick Ask</div>',
+        unsafe_allow_html=True
+    )
     quick_cmds = [
         "How do I check disk usage?",
         "Show CPU and memory usage",
@@ -694,35 +747,21 @@ with st.sidebar:
             st.rerun()
     st.divider()
 
-    # ── Account & Logout ───────────────────────────────────
-    st.markdown('<div class="section-header">👤 Account</div>',
-                unsafe_allow_html=True)
+    # ── Chat Controls ──────────────────────────────────────
     st.markdown(
-        f'<div style="color:#6c7086;font-size:12px;margin-bottom:8px;">'
-        f'Logged in as: '
-        f'<span style="color:#89b4fa;font-weight:bold;">'
-        f'{st.session_state.get("username", "guest")}</span></div>',
+        '<div class="section-header">🗂 Chat</div>',
         unsafe_allow_html=True
     )
-    if st.button("🚪 Logout", use_container_width=True):
-        st.session_state["authenticated"] = False
-        st.session_state["username"]      = ""
-        st.rerun()
-    st.divider()
-
-    # ── Chat Controls ──────────────────────────────────────
-    st.markdown('<div class="section-header">🗂 Chat</div>',
-                unsafe_allow_html=True)
     if st.button("🗑 Clear Chat", use_container_width=True):
         st.session_state.chat_history = []
         st.rerun()
 
-    # ✅ Export: Admin only
-    if get_permission("can_export"):
+    # ✅ Export Chat — Admin only
+    if is_admin:
         if st.button("💾 Export Chat (.txt)", use_container_width=True):
             chat_txt = ""
             for msg in st.session_state.chat_history:
-                chat_txt += f"[{msg['role'].upper()}] {msg.get('timestamp', '')}\n"
+                chat_txt += f"[{msg['role'].upper()}] {msg.get('timestamp','')}\n"
                 chat_txt += f"{msg['content']}\n\n"
             st.download_button(
                 "⬇ Download Chat",
@@ -740,7 +779,8 @@ with st.sidebar:
                 use_container_width=True
             )
     else:
-        st.info("⛔ Export restricted to Admin only.")
+        st.caption("⛔ Export: Admin only")
+
 
 ###############################################################
 # MAIN AREA — TABS
