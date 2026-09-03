@@ -390,35 +390,6 @@ def db_get_all(category_filter=None, search_kw=None):
     except:
         return []
 
-def db_export_json():   # ← already exists, keep it
-
-def db_get_all(category_filter=None, search_kw=None):
-    try:
-        db = get_db()
-        if db is None:
-            return []
-        query = "SELECT id,name,command,category,description,created_at FROM favorites"
-        params = []
-        conditions = []
-        if category_filter and category_filter != "All":
-            conditions.append("category=?")
-            params.append(category_filter)
-        if search_kw:
-            conditions.append(
-                "(name LIKE ? OR command LIKE ? OR description LIKE ?)"
-            )
-            kw = f"%{search_kw}%"
-            params += [kw, kw, kw]
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
-        query += " ORDER BY category, name"
-        return db.execute(query, params).fetchall()
-    except:
-        return []
-
-@st.cache_data(ttl=30)   ← Now this is fine!
-
-
 # ✅ New
 def db_export_json():
     try:
