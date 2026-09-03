@@ -471,12 +471,12 @@ def check_ollama():
 def stream_ollama(model, messages):
     GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
     GROQ_MODELS = {
-        "llama3": "llama3-8b-8192",  # ⚡ Fastest
-        "llama3.2": "llama3-8b-8192",  # ⚡ Fast
+        "llama3": "llama-3.1-8b-instant",  # ⚡ Fastest
+        "llama3.2": "llama-3.1-8b-instant",  # ⚡ Fast
         "mistral": "mixtral-8x7b-32768",  # ⚡ Medium
         "gemma2": "gemma2-9b-it",  # ⚡ Fast
-        "codellama": "llama3-8b-8192",  # ⚡ Fast
-        "phi3": "llama3-8b-8192",  # ⚡ Fast
+        "codellama": "llama-3.1-8b-instant",  # ⚡ Fast
+        "phi3": "llama-3.1-8b-instant",  # ⚡ Fast
     }
 
     groq_model = GROQ_MODELS.get(model, "llama3-8b-8192")
@@ -791,7 +791,7 @@ with tab_chat:
                             "Content-Type": "application/json"
                         },
                         json={
-                            "model": "llama3-8b-8192",
+                            "model": "llama-3.1-8b-instant",
                             "messages": [
                                 {"role": "user", "content": "Say hello in one word"}
                             ],
