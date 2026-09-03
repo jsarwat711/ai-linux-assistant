@@ -333,19 +333,24 @@ init_state()
 ###############################################################
 @st.cache_resource
 def get_db():
-    conn = sqlite3.connect(FAVORITES_DB, check_same_thread=False)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS favorites (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            name        TEXT NOT NULL,
-            command     TEXT NOT NULL,
-            category    TEXT DEFAULT 'General',
-            description TEXT DEFAULT '',
-            created_at  TEXT DEFAULT (datetime('now'))
-        )
-    """)
-    conn.commit()
-    return conn
+    try:
+        conn = sqlite3.connect(FAVORITES_DB, check_same_thread=False)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS favorites (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                name        TEXT NOT NULL,
+                command     TEXT NOT NULL,
+                category    TEXT DEFAULT 'General',
+                description TEXT DEFAULT '',
+                created_at  TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        conn.commit()
+        return conn
+    except Exception as e:
+        st.error(f"Database error: {e}")
+        return None
+
 
 def db_add(name, command, category="General", description=""):
     db = get_db()
@@ -361,26 +366,30 @@ def db_delete(fav_id):
     db.commit()
 
 @st.cache_data(ttl=30)  # Cache for 30 seconds
-def db_get_all_cached(category_filter=None, search_kw=None):
-    return db_get_all(category_filter, search_kw)
+def db_get_all(category_filter=None, search_kw=None):
+    try:
+        db = get_db()
+        if db is None:
+            return []
+        query = "SELECT id,name,command,category,description,created_at FROM favorites"
+        params = []
+        conditions = []
+        if category_filter and category_filter != "All":
+            conditions.append("category=?")
+            params.append(category_filter)
+        if search_kw:
+            conditions.append(
+                "(name LIKE ? OR command LIKE ? OR description LIKE ?)"
+            )
+            kw = f"%{search_kw}%"
+            params += [kw, kw, kw]
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+        query += " ORDER BY category, name"
+        return db.execute(query, params).fetchall()
+    except:
+        return []
 
-    db = get_db()
-    query = "SELECT id,name,command,category,description,created_at FROM favorites"
-    params = []
-    conditions = []
-    if category_filter and category_filter != "All":
-        conditions.append("category=?")
-        params.append(category_filter)
-    if search_kw:
-        conditions.append(
-            "(name LIKE ? OR command LIKE ? OR description LIKE ?)"
-        )
-        kw = f"%{search_kw}%"
-        params += [kw, kw, kw]
-    if conditions:
-        query += " WHERE " + " AND ".join(conditions)
-    query += " ORDER BY category, name"
-    return db.execute(query, params).fetchall()
 
 # ✅ New
 def db_export_json():
@@ -392,8 +401,9 @@ def db_export_json():
              for r in rows],
             indent=2
         )
-    except Exception as e:
-        return json.dumps({"error": str(e)}, indent=2)
+    except:
+        return json.dumps([], indent=2)
+
 
 
 def db_import_json(json_str):
@@ -606,6 +616,10 @@ with st.sidebar:
     st.markdown(f'<div class="app-title">🐧 {APP_NAME}</div>', unsafe_allow_html=True)
     st.markdown(f'<div style="color:#6c7086;font-size:11px;">v{VERSION} · Personal Use</div>', unsafe_allow_html=True)
     st.divider()
+
+    # Temporary debug — remove after fixing!
+    api_key = os.environ.get("GROQ_API_KEY", "NOT FOUND")
+    st.sidebar.write(f"Key starts with: {api_key[:8] if len(api_key) > 8 else api_key}")
 
     # ── Ollama Status ──────────────────────────────────────
     st.markdown('<div class="section-header">🔌 AI API Status</div>', unsafe_allow_html=True)
@@ -1013,9 +1027,9 @@ with tab_favorites:
             category_filter=fav_cat_filter if fav_cat_filter != "All" else None,
             search_kw=fav_search.strip() if fav_search and fav_search.strip() else None
         )
-    except Exception as e:
+    except:
         rows = []
-        st.error(f"Database error: {e}")
+     #   st.error(f"Database error: {e}")
 
     if not rows:
         st.markdown(
@@ -1166,7 +1180,10 @@ with col_f3:
         unsafe_allow_html=True
     )
 with col_f4:
-    fav_count = len(db_get_all())
+    try:
+        fav_count = len(db_get_all())
+    except:
+        fav_count = 0
     st.markdown(
         f'<div style="color:#6c7086;font-size:11px;">⭐ Favorites: '
         f'<span style="color:#f9e2af;">{fav_count}</span></div>',
