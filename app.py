@@ -86,6 +86,48 @@ def check_password():
 check_password()
 
 ###############################################################
+# ✅ HIDE STREAMLIT UI FOR GUEST — inject after login
+###############################################################
+current_user = st.session_state.get("username", "guest")
+is_admin     = (current_user == "admin")
+
+if not is_admin:
+    st.markdown("""
+    <style>
+    /* ── Hide top-right GitHub + Streamlit icons ── */
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+
+    /* ── Hide bottom-left Manage App button ── */
+    [data-testid="stToolbar"] {
+        display: none !important;
+    }
+
+    /* ── Hide top-right hamburger menu ── */
+    #MainMenu {
+        display: none !important;
+    }
+
+    /* ── Hide Deploy button ── */
+    [data-testid="stAppDeployButton"] {
+        display: none !important;
+    }
+
+    /* ── Hide footer ── */
+    footer {
+        display: none !important;
+    }
+
+    /* ── Hide top decoration bar ── */
+    [data-testid="stDecoration"] {
+        display: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+###############################################################
 # CONFIG
 ###############################################################
 APP_NAME      = "AI Linux Command Assistant"
