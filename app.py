@@ -21,7 +21,7 @@ import requests
 ###############################################################
 APP_NAME      = "AI Linux Command Assistant"
 VERSION       = "1.0.0"
-DEFAULT_MODEL = "llama3-8b"
+DEFAULT_MODEL = "llama3"
 # ✅ New — use /tmp/ folder (writable on Streamlit Cloud)
 import tempfile
 TMP_DIR      = tempfile.gettempdir()
@@ -472,12 +472,12 @@ def check_ollama():
 def stream_ollama(model, messages):
     GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
     GROQ_MODELS = {
-        "llama3": "llama3-8b-8192",  # Fast ⚡
-        "llama3.2": "llama3-8b-8192",  # Fast ⚡ (changed)
-        "mistral": "mixtral-8x7b-32768",
-        "gemma2": "gemma2-9b-it",
-        "codellama": "llama3-8b-8192",  # Fast ⚡
-        "phi3": "llama3-8b-8192",  # Fast ⚡
+        "llama3": "llama3-8b-8192",  # ⚡ Fastest
+        "llama3.2": "llama3-8b-8192",  # ⚡ Fast
+        "mistral": "mixtral-8x7b-32768",  # ⚡ Medium
+        "gemma2": "gemma2-9b-it",  # ⚡ Fast
+        "codellama": "llama3-8b-8192",  # ⚡ Fast
+        "phi3": "llama3-8b-8192",  # ⚡ Fast
     }
 
     groq_model = GROQ_MODELS.get(model, "llama3-8b-8192")
@@ -812,23 +812,68 @@ with tab_chat:
 
         # Build messages for Ollama
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        for msg in st.session_state.chat_history[-12:]:
+        for msg in st.session_state.chat_history[-6:]:
             messages.append({"role": msg["role"], "content": msg["content"]})
 
         # Stream response
         full_response = ""
         with stream_placeholder.container():
-            st.markdown(
-                '<div style="color:#f9e2af;font-size:13px;">⟳ AI is thinking...</div>',
+
+            # ── Progress indicators ──
+            status_box = st.empty()
+            progress_bar = st.progress(0)
+            response_box = st.empty()
+
+            status_box.markdown(
+                '<div style="color:#f9e2af;font-size:13px;">'
+                '⟳ Connecting to AI...</div>',
                 unsafe_allow_html=True
             )
-            response_box = st.empty()
+
+            chunk_count = 0
+            got_response = False
+
             for chunk in stream_ollama(st.session_state.current_model, messages):
+                if not got_response:
+                    got_response = True
+                    status_box.markdown(
+                        '<div style="color:#a6e3a1;font-size:13px;">'
+                        '✅ AI is responding...</div>',
+                        unsafe_allow_html=True
+                    )
+
                 full_response += chunk
-                response_box.markdown(
-                    render_chat_message("assistant", full_response + " ▌", ts),
+                chunk_count += 1
+
+                # Update progress bar (simulate 0→90%)
+                progress = min(0.9, chunk_count / 100)
+                progress_bar.progress(progress)
+
+                # Update response every 3 chunks (faster rendering!)
+                if chunk_count % 3 == 0:
+                    response_box.markdown(
+                        render_chat_message("assistant", full_response + " ▌", ts),
+                        unsafe_allow_html=True
+                    )
+
+            # Final update
+            progress_bar.progress(1.0)
+            status_box.markdown(
+                '<div style="color:#a6e3a1;font-size:13px;">✅ Done!</div>',
+                unsafe_allow_html=True
+            )
+            response_box.markdown(
+                render_chat_message("assistant", full_response, ts),
+                unsafe_allow_html=True
+            )
+
+            if not got_response:
+                status_box.markdown(
+                    '<div style="color:#f38ba8;font-size:13px;">'
+                    '❌ No response received! Check API key in secrets.</div>',
                     unsafe_allow_html=True
                 )
+                progress_bar.empty()
 
         stream_placeholder.empty()
 
