@@ -324,11 +324,6 @@ def init_state():
 
 init_state()
 
-# Auto check Groq on first load  ← FIXED VERSION
-if st.session_state.get("ollama_status") is None:
-    st.session_state.ollama_status = check_ollama()
-
-
 ###############################################################
 # FAVORITES DATABASE
 ###############################################################
@@ -592,6 +587,9 @@ def render_terminal():
 
     return f'<div class="terminal-box">{lines_html}</div>'
 
+# Auto check Groq on first load
+if st.session_state.get("ollama_status") is None:
+    st.session_state.ollama_status = check_ollama()
 ###############################################################
 # SIDEBAR
 ###############################################################
