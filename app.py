@@ -43,6 +43,43 @@ def get_permission(perm):
 
 def check_password():
     def login_form():
+
+        # ✅ ADD THIS NEW BLOCK ↓ ↓ ↓
+        st.markdown("""
+        <style>
+        html, body, [class*="css"],
+        [data-testid="stAppViewContainer"],
+        [data-testid="stApp"] {
+            background-color: #1e1e2e !important;
+            color: #cdd6f4 !important;
+        }
+        section[data-testid="stSidebar"] {
+            display: none !important;
+        }
+        #MainMenu                         { display: none !important; }
+        footer                            { display: none !important; }
+        [data-testid="stToolbar"]         { display: none !important; }
+        [data-testid="stDecoration"]      { display: none !important; }
+        [data-testid="stHeader"]          { display: none !important; }
+        input, textarea {
+            background-color: #313244 !important;
+            color: #cdd6f4 !important;
+            border-color: #45475a !important;
+        }
+        .stButton > button {
+            background-color: #313244 !important;
+            color: #cdd6f4 !important;
+            border: none !important;
+        }
+        .stButton > button:hover {
+            background-color: #89b4fa !important;
+            color: #1e1e2e !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        # ✅ END OF NEW BLOCK ↑ ↑ ↑
+
+        # ── existing code below stays exactly the same ──
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.markdown("""
@@ -63,7 +100,9 @@ def check_password():
                 </p>
             </div>
             """, unsafe_allow_html=True)
+
             st.markdown("<br>", unsafe_allow_html=True)
+
             with st.form("login_form"):
                 username = st.text_input("👤 Username", placeholder="Enter username")
                 password = st.text_input("🔑 Password", type="password",
@@ -74,7 +113,7 @@ def check_password():
                 if submit:
                     if username in ROLES and ROLES[username]["password"] == password:
                         st.session_state["authenticated"] = True
-                        st.session_state["username"]      = username
+                        st.session_state["username"] = username
                         st.rerun()
                     else:
                         st.error("❌ Wrong username or password!")
@@ -86,7 +125,70 @@ def check_password():
 check_password()
 
 ###############################################################
-# ✅ HIDE STREAMLIT UI FOR GUEST — inject after login
+# ✅ FORCE DARK THEME FOR ALL USERS
+###############################################################
+st.markdown("""
+<style>
+/* Force dark background on everything */
+html, body, [class*="css"],
+[data-testid="stAppViewContainer"],
+[data-testid="stApp"] {
+    background-color: #1e1e2e !important;
+    color: #cdd6f4 !important;
+}
+
+/* Top header bar */
+[data-testid="stHeader"] {
+    background-color: #181825 !important;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background-color: #181825 !important;
+}
+
+/* All text inputs */
+input, textarea, select {
+    background-color: #181825 !important;
+    color: #cdd6f4 !important;
+    border-color: #313244 !important;
+}
+
+/* Cards / containers */
+[data-testid="stVerticalBlock"],
+[data-testid="stHorizontalBlock"] {
+    background-color: #1e1e2e !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    background-color: #181825 !important;
+}
+
+/* Expanders */
+details {
+    background-color: #313244 !important;
+}
+
+/* Buttons */
+.stButton > button {
+    background-color: #313244 !important;
+    color: #cdd6f4 !important;
+    border: none !important;
+}
+.stButton > button:hover {
+    background-color: #45475a !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #181825; }
+::-webkit-scrollbar-thumb { background: #45475a; border-radius: 4px; }
+</style>
+""", unsafe_allow_html=True)
+
+###############################################################
+# HIDE STREAMLIT UI FOR GUEST
 ###############################################################
 current_user = st.session_state.get("username", "guest")
 is_admin     = (current_user == "admin")
@@ -94,38 +196,14 @@ is_admin     = (current_user == "admin")
 if not is_admin:
     st.markdown("""
     <style>
-    /* ── Hide top-right GitHub + Streamlit icons ── */
-    header[data-testid="stHeader"] {
-        display: none !important;
-    }
-
-    /* ── Hide bottom-left Manage App button ── */
-    [data-testid="stToolbar"] {
-        display: none !important;
-    }
-
-    /* ── Hide top-right hamburger menu ── */
-    #MainMenu {
-        display: none !important;
-    }
-
-    /* ── Hide Deploy button ── */
-    [data-testid="stAppDeployButton"] {
-        display: none !important;
-    }
-
-    /* ── Hide footer ── */
-    footer {
-        display: none !important;
-    }
-
-    /* ── Hide top decoration bar ── */
-    [data-testid="stDecoration"] {
-        display: none !important;
-    }
+    header[data-testid="stHeader"]    { display: none !important; }
+    [data-testid="stToolbar"]         { display: none !important; }
+    #MainMenu                         { display: none !important; }
+    [data-testid="stAppDeployButton"] { display: none !important; }
+    footer                            { display: none !important; }
+    [data-testid="stDecoration"]      { display: none !important; }
     </style>
     """, unsafe_allow_html=True)
-
 
 ###############################################################
 # CONFIG
