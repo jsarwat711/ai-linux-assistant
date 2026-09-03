@@ -392,7 +392,6 @@ def db_get_all(category_filter=None, search_kw=None):
 
 def db_export_json():   # ← already exists, keep it
 
-@st.cache_data(ttl=30)  # Cache for 30 seconds
 def db_get_all(category_filter=None, search_kw=None):
     try:
         db = get_db()
@@ -416,6 +415,8 @@ def db_get_all(category_filter=None, search_kw=None):
         return db.execute(query, params).fetchall()
     except:
         return []
+
+@st.cache_data(ttl=30)   ← Now this is fine!
 
 
 # ✅ New
