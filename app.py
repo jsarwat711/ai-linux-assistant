@@ -22,8 +22,12 @@ import requests
 APP_NAME      = "AI Linux Command Assistant"
 VERSION       = "1.0.0"
 DEFAULT_MODEL = "llama3-8b"
-FAVORITES_DB  = "favorites.db"
-HISTORY_FILE  = "command_history.json"
+# ✅ New — use /tmp/ folder (writable on Streamlit Cloud)
+import tempfile
+TMP_DIR      = tempfile.gettempdir()
+FAVORITES_DB = os.path.join(TMP_DIR, "favorites.db")
+HISTORY_FILE = os.path.join(TMP_DIR, "command_history.json")
+
 OLLAMA_URL    = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
 AVAILABLE_MODELS = [
@@ -378,14 +382,19 @@ def db_get_all_cached(category_filter=None, search_kw=None):
     query += " ORDER BY category, name"
     return db.execute(query, params).fetchall()
 
+# ✅ New
 def db_export_json():
-    rows = db_get_all()
-    return json.dumps(
-        [{"id":r[0],"name":r[1],"command":r[2],
-          "category":r[3],"description":r[4],"created_at":r[5]}
-         for r in rows],
-        indent=2
-    )
+    try:
+        rows = db_get_all()
+        return json.dumps(
+            [{"id":r[0],"name":r[1],"command":r[2],
+              "category":r[3],"description":r[4],"created_at":r[5]}
+             for r in rows],
+            indent=2
+        )
+    except Exception as e:
+        return json.dumps({"error": str(e)}, indent=2)
+
 
 def db_import_json(json_str):
     data = json.loads(json_str)
