@@ -809,83 +809,63 @@ with tab_chat:
                 "role": "user", "content": message_to_send, "timestamp": ts
             })
 
-        # Build messages for Ollama
+        # Build messages for Groq
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         for msg in st.session_state.chat_history[-6:]:
             messages.append({"role": msg["role"], "content": msg["content"]})
 
         # Stream response
         full_response = ""
-        with stream_placeholder.container():
+        chunk_count   = 0
+        got_response  = False
 
-            # ── Progress indicators ──
-            status_box = st.empty()
-            progress_bar = st.progress(0)
-            response_box = st.empty()
+        # ── Status + Progress ──
+        status_box   = stream_placeholder.empty()
+        progress_bar = st.progress(0, text="⟳ Connecting to AI...")
+        response_box = st.empty()
 
-            status_box.markdown(
-                '<div style="color:#f9e2af;font-size:13px;">'
-                '⟳ Connecting to AI...</div>',
-                unsafe_allow_html=True
-            )
+        for chunk in stream_ollama(st.session_state.current_model, messages):
+            if not got_response:
+                got_response = True
+                progress_bar.progress(5, text="✅ AI is responding...")
 
-            chunk_count = 0
-            got_response = False
+            full_response += chunk
+            chunk_count   += 1
 
-            for chunk in stream_ollama(st.session_state.current_model, messages):
-                if not got_response:
-                    got_response = True
-                    status_box.markdown(
-                        '<div style="color:#a6e3a1;font-size:13px;">'
-                        '✅ AI is responding...</div>',
-                        unsafe_allow_html=True
-                    )
+            # Update progress bar
+            progress = min(95, chunk_count * 2)
+            progress_bar.progress(progress, text=f"✅ Receiving response...")
 
-                full_response += chunk
-                chunk_count += 1
+            # Update response box every 3 chunks
+            if chunk_count % 3 == 0 or chunk_count == 1:
+                response_box.markdown(
+                    render_chat_message("assistant", full_response + " ▌", ts),
+                    unsafe_allow_html=True
+                )
 
-                # Update progress bar (simulate 0→90%)
-                progress = min(0.9, chunk_count / 100)
-                progress_bar.progress(progress)
-
-                # Update response every 3 chunks (faster rendering!)
-                if chunk_count % 3 == 0:
-                    response_box.markdown(
-                        render_chat_message("assistant", full_response + " ▌", ts),
-                        unsafe_allow_html=True
-                    )
-
-            # Final update
-            progress_bar.progress(1.0)
-            status_box.markdown(
-                '<div style="color:#a6e3a1;font-size:13px;">✅ Done!</div>',
-                unsafe_allow_html=True
-            )
+        # ── Final Update ──
+        if got_response:
+            progress_bar.progress(100, text="✅ Done!")
             response_box.markdown(
                 render_chat_message("assistant", full_response, ts),
                 unsafe_allow_html=True
             )
-
-            if not got_response:
-                status_box.markdown(
-                    '<div style="color:#f38ba8;font-size:13px;">'
-                    '❌ No response received! Check API key in secrets.</div>',
-                    unsafe_allow_html=True
-                )
-                progress_bar.empty()
-
-        stream_placeholder.empty()
-
-        if full_response:
+            # Save to history
             ai_ts = datetime.datetime.now().strftime("%H:%M:%S")
             st.session_state.chat_history.append({
                 "role": "assistant", "content": full_response, "timestamp": ai_ts
             })
-
             # Extract commands
             cmds = extract_commands(full_response)
             if cmds:
                 st.session_state.last_ai_command = cmds[0]
+        else:
+            progress_bar.empty()
+            response_box.markdown(
+                '<div style="color:#f38ba8;padding:10px;border-left:4px solid #f38ba8;">'
+                '❌ No response! Check GROQ_API_KEY in Streamlit secrets.</div>',
+                unsafe_allow_html=True
+            )
 
         st.rerun()
 
