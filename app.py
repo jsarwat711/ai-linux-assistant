@@ -308,6 +308,9 @@ st.markdown(DARK_CSS, unsafe_allow_html=True)
 # SESSION STATE INIT
 ###############################################################
 def init_state():
+    # Auto check Groq on first load
+    if st.session_state.ollama_status is None:
+        st.session_state.ollama_status = check_ollama()
     defaults = {
         "chat_history":     [],        # [{role, content, timestamp}]
         "terminal_lines":   [],        # [{text, type}] type: normal/error/header
@@ -433,8 +436,10 @@ def get_ollama_models():
     ]
 
 def check_ollama():
+    """Check Groq API connection"""
     api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
+        st.sidebar.warning("⚠️ GROQ_API_KEY not found in secrets!")
         return False
     try:
         r = requests.get(
@@ -445,6 +450,7 @@ def check_ollama():
         return r.status_code == 200
     except:
         return False
+
 
 
 def stream_ollama(model, messages):
@@ -593,7 +599,7 @@ with st.sidebar:
     st.divider()
 
     # ── Ollama Status ──────────────────────────────────────
-    st.markdown('<div class="section-header">🔌 Ollama Status</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">🔌 AI API Status</div>', unsafe_allow_html=True)
     col_s1, col_s2 = st.columns([2, 1])
     with col_s1:
         if st.button("Check Connection", use_container_width=True):
@@ -604,7 +610,7 @@ with st.sidebar:
         st.markdown('<span class="badge-ok">✅ Connected</span>', unsafe_allow_html=True)
     elif status is False:
         st.markdown('<span class="badge-error">❌ Offline</span>', unsafe_allow_html=True)
-        st.info("Run: `ollama serve` in terminal")
+        st.info("⚠️ Check GROQ_API_KEY in Streamlit secrets!")
     else:
         st.markdown('<span class="badge-warning">⚡ Not checked</span>', unsafe_allow_html=True)
 
@@ -992,10 +998,15 @@ with tab_favorites:
         )
 
     # ── Display Favorites ──────────────────────────────────
-    rows = db_get_all(
-        category_filter=fav_cat_filter if fav_cat_filter != "All" else None,
-        search_kw=fav_search if fav_search.strip() else None
-    )
+    # ✅ Safe version
+    try:
+        rows = db_get_all(
+            category_filter=fav_cat_filter if fav_cat_filter != "All" else None,
+            search_kw=fav_search.strip() if fav_search and fav_search.strip() else None
+        )
+    except Exception as e:
+        rows = []
+        st.error(f"Database error: {e}")
 
     if not rows:
         st.markdown(
