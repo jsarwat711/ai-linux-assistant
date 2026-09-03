@@ -17,65 +17,90 @@ import time
 import requests
 
 ###############################################################
-# AUTHENTICATION
+# AUTHENTICATION & ROLES
 ###############################################################
-def check_password():
-    """Simple password protection"""
-
-    # ── Define users (add more as needed) ──
-    USERS = {
-        "admin":  os.environ.get("ADMIN_PASSWORD",  "jo.711"),
-        "guest":  os.environ.get("GUEST_PASSWORD",  "guest123"),
+# Define roles
+ROLES = {
+    "admin": {
+        "password": os.environ.get("ADMIN_PASSWORD", "admin123"),
+        "can_export": True,
+        "can_import": True,
+        "can_run_terminal": True,
+        "can_manage": True,
+        "can_clear_history": True,
+    },
+    "guest": {
+        "password": os.environ.get("GUEST_PASSWORD", "guest123"),
+        "can_export": False,
+        "can_import": False,
+        "can_run_terminal": False,
+        "can_manage": False,
+        "can_clear_history": False,
     }
+}
+
+def get_permission(perm):
+    """Check if current user has a permission"""
+    role = st.session_state.get("username", "guest")
+    return ROLES.get(role, ROLES["guest"]).get(perm, False)
+
+def check_password():
+    """Login gate — stops app if not authenticated"""
 
     def login_form():
-        st.markdown("""
-        <div style="
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 40px;
-            background: #1e1e2e;
-            border: 1px solid #313244;
-            border-radius: 16px;
-            text-align: center;
-        ">
-            <div style="font-size:48px;">🐧</div>
-            <h2 style="color:#89b4fa;font-family:Consolas;">AI Linux Assistant</h2>
-            <p style="color:#6c7086;font-size:13px;">Enter your credentials to continue</p>
-        </div>
-        """, unsafe_allow_html=True)
+        # Center the login box
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.markdown("""
+            <div style="
+                padding: 40px;
+                background: #1e1e2e;
+                border: 1px solid #313244;
+                border-radius: 16px;
+                text-align: center;
+                margin-top: 80px;
+            ">
+                <div style="font-size:52px;">🐧</div>
+                <h2 style="color:#89b4fa;font-family:Consolas;margin:10px 0;">
+                    AI Linux Assistant
+                </h2>
+                <p style="color:#6c7086;font-size:13px;">
+                    Enter your credentials to continue
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
 
-        with st.form("login_form"):
-            username = st.text_input(
-                "Username",
-                placeholder="Enter username"
-            )
-            password = st.text_input(
-                "Password",
-                type="password",
-                placeholder="Enter password"
-            )
-            submit = st.form_submit_button(
-                "🔐 Login",
-                use_container_width=True,
-                type="primary"
-            )
+            st.markdown("<br>", unsafe_allow_html=True)
 
-            if submit:
-                if username in USERS and USERS[username] == password:
-                    st.session_state["authenticated"] = True
-                    st.session_state["username"] = username
-                    st.rerun()
-                else:
-                    st.error("❌ Wrong username or password!")
+            with st.form("login_form"):
+                username = st.text_input(
+                    "👤 Username",
+                    placeholder="Enter username"
+                )
+                password = st.text_input(
+                    "🔑 Password",
+                    type="password",
+                    placeholder="Enter password"
+                )
+                submit = st.form_submit_button(
+                    "🔐 Login",
+                    use_container_width=True,
+                    type="primary"
+                )
+                if submit:
+                    if username in ROLES and \
+                       ROLES[username]["password"] == password:
+                        st.session_state["authenticated"] = True
+                        st.session_state["username"]      = username
+                        st.rerun()
+                    else:
+                        st.error("❌ Wrong username or password!")
 
-    # ── Check if already logged in ──
     if not st.session_state.get("authenticated", False):
         login_form()
-        st.stop()   # ← Stops rest of app from loading!
+        st.stop()
 
-check_password()  # ← Call it before anything else!
-
+check_password()
 
 ###############################################################
 # CONFIG
@@ -690,7 +715,35 @@ if st.session_state.get("ollama_status") is None:
 ###############################################################
 with st.sidebar:
     st.markdown(f'<div class="app-title">🐧 {APP_NAME}</div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="color:#6c7086;font-size:11px;">v{VERSION} · Personal Use</div>', unsafe_allow_html=True)
+    with st.sidebar:
+        st.markdown(f'<div class="app-title">🐧 {APP_NAME}</div>', unsafe_allow_html=True)
+
+        # ✅ Replace this line ↓
+        st.markdown(
+            f'<div style="color:#6c7086;font-size:11px;">'
+            f'v{VERSION} · '
+            f'{"👑 Admin" if st.session_state.get("username") == "admin" else "👤 Guest"}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        st.divider()
+
+        # ✅ Add this block right after st.divider() ↓
+        if get_permission("can_manage"):
+            st.markdown('<div class="section-header">⚙️ Management</div>',
+                        unsafe_allow_html=True)
+            st.markdown("""
+            <div style="font-size:12px;color:#6c7086;">
+                🔗 <a href="https://share.streamlit.io" target="_blank"
+                   style="color:#89b4fa;">Streamlit Cloud</a><br>
+                🔗 <a href="https://github.com" target="_blank"
+                   style="color:#89b4fa;">GitHub</a><br>
+                🔗 <a href="https://console.groq.com" target="_blank"
+                   style="color:#89b4fa;">Groq Console</a>
+            </div>
+            """, unsafe_allow_html=True)
+            st.divider()
+
     st.divider()
 
         # ── Ollama Status ──────────────────────────────────────
@@ -761,6 +814,23 @@ with st.sidebar:
 
     st.divider()
 
+    # ── User Info & Logout ─────────────────────────────────
+    st.markdown('<div class="section-header">👤 Account</div>',
+                unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="color:#6c7086;font-size:12px;margin-bottom:8px;">'
+        f'Logged in as: '
+        f'<span style="color:#89b4fa;font-weight:bold;">'
+        f'{st.session_state.get("username", "guest")}</span></div>',
+        unsafe_allow_html=True
+    )
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state["authenticated"] = False
+        st.session_state["username"] = ""
+        st.rerun()
+
+    st.divider()
+
     # ── Chat Controls ──────────────────────────────────────
     st.markdown('<div class="section-header">🗂 Chat</div>', unsafe_allow_html=True)
 
@@ -768,27 +838,30 @@ with st.sidebar:
         st.session_state.chat_history = []
         st.rerun()
 
-    if st.button("💾 Export Chat (.txt)", use_container_width=True):
-        chat_txt = ""
-        for msg in st.session_state.chat_history:
-            chat_txt += f"[{msg['role'].upper()}] {msg.get('timestamp','')}\n"
-            chat_txt += f"{msg['content']}\n\n"
-        st.download_button(
-            "⬇ Download Chat",
-            data=chat_txt,
-            file_name=f"chat_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-            mime="text/plain",
-            use_container_width=True
-        )
-
-    if st.button("💾 Export Chat (.json)", use_container_width=True):
-        st.download_button(
-            "⬇ Download JSON",
-            data=json.dumps(st.session_state.chat_history, indent=2),
-            file_name=f"chat_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json",
-            use_container_width=True
-        )
+    # ✅ Only admin can export
+    if get_permission("can_export"):
+        if st.button("💾 Export Chat (.txt)", use_container_width=True):
+            chat_txt = ""
+            for msg in st.session_state.chat_history:
+                chat_txt += f"[{msg['role'].upper()}] {msg.get('timestamp', '')}\n"
+                chat_txt += f"{msg['content']}\n\n"
+            st.download_button(
+                "⬇ Download Chat",
+                data=chat_txt,
+                file_name=f"chat_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
+        if st.button("💾 Export Chat (.json)", use_container_width=True):
+            st.download_button(
+                "⬇ Download JSON",
+                data=json.dumps(st.session_state.chat_history, indent=2),
+                file_name=f"chat_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                use_container_width=True
+            )
+    else:
+        st.info("⛔ Export restricted to Admin only.")
 
 ###############################################################
 # MAIN AREA — TABS
@@ -994,8 +1067,16 @@ with tab_terminal:
         if "_prefill_cmd" in st.session_state:
             del st.session_state["_prefill_cmd"]
 
-    with col_run:
-        run_btn = st.button("▶ Run", use_container_width=True, type="primary")
+    run_btn = st.button(
+        "▶ Run",
+        use_container_width=True,
+        type="primary",
+        disabled=not get_permission("can_run_terminal")
+    )
+
+    # Block guest from running commands
+    if not get_permission("can_run_terminal"):
+        st.warning("⛔ Terminal access is restricted to Admin only!")
     with col_clr:
         if st.button("✕ Clear", use_container_width=True):
             st.session_state.terminal_lines = []
@@ -1173,33 +1254,39 @@ with tab_favorites:
 
     st.divider()
 
-    # ── Export / Import ────────────────────────────────────
-    st.markdown('<div class="section-header">📤 Export / Import</div>',
-                unsafe_allow_html=True)
+    # ── Export / Import ──
     col_exp, col_imp = st.columns(2)
     with col_exp:
-        json_data = db_export_json()
-        st.download_button(
-            "⬆ Export Favorites (.json)",
-            data=json_data,
-            file_name=f"favorites_{datetime.datetime.now().strftime('%Y%m%d')}.json",
-            mime="application/json",
-            use_container_width=True
-        )
+        # Only show export to admin
+        if get_permission("can_export"):
+            json_data = db_export_json()
+            st.download_button(
+                "⬆ Export Favorites (.json)",
+                data=json_data,
+                file_name=f"favorites_{datetime.datetime.now().strftime('%Y%m%d')}.json",
+                mime="application/json",
+                use_container_width=True
+            )
+        else:
+            st.info("⛔ Export restricted to Admin only.")
+
     with col_imp:
-        uploaded = st.file_uploader(
-            "⬇ Import Favorites (.json)",
-            type=["json"],
-            key="fav_import_upload",
-            label_visibility="collapsed"
-        )
-        if uploaded:
-            try:
-                db_import_json(uploaded.read().decode("utf-8"))
-                st.success("✅ Favorites imported!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Import error: {e}")
+        if get_permission("can_import"):
+            uploaded = st.file_uploader(
+                "⬇ Import Favorites (.json)",
+                type=["json"],
+                key="fav_import_upload",
+                label_visibility="collapsed"
+            )
+            if uploaded:
+                try:
+                    db_import_json(uploaded.read().decode("utf-8"))
+                    st.success("✅ Favorites imported!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Import error: {e}")
+        else:
+            st.info("⛔ Import restricted to Admin only.")
 
 ###############################################################
 # TAB 4 — HISTORY
@@ -1223,10 +1310,14 @@ with tab_history:
                 unsafe_allow_html=True
             )
         with col_hdr2:
-            if st.button("✕ Clear All", use_container_width=True):
-                st.session_state.command_history = []
-                save_history()
-                st.rerun()
+            # ✅ New - Admin only
+            if get_permission("can_clear_history"):
+                if st.button("✕ Clear All", use_container_width=True):
+                    st.session_state.command_history = []
+                    save_history()
+                    st.rerun()
+            else:
+                st.info("⛔ Restricted to Admin only.")
 
         st.divider()
 
