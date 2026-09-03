@@ -693,11 +693,7 @@ with st.sidebar:
     st.markdown(f'<div style="color:#6c7086;font-size:11px;">v{VERSION} · Personal Use</div>', unsafe_allow_html=True)
     st.divider()
 
-    # Temporary debug — remove after fixing!
-    api_key = os.environ.get("GROQ_API_KEY", "NOT FOUND")
-    st.sidebar.write(f"Key starts with: {api_key[:8] if len(api_key) > 8 else api_key}")
-
-    # ── Ollama Status ──────────────────────────────────────
+        # ── Ollama Status ──────────────────────────────────────
     st.markdown('<div class="section-header">🔌 AI API Status</div>', unsafe_allow_html=True)
     col_s1, col_s2 = st.columns([2, 1])
     with col_s1:
@@ -858,36 +854,6 @@ with tab_chat:
                 use_container_width=True,
                 type="primary"
             )
-        # TEMPORARY TEST BUTTON
-        if st.button("🧪 Test API Directly", use_container_width=True):
-            api_key = os.environ.get("GROQ_API_KEY", "")
-            if not api_key:
-                st.error("❌ GROQ_API_KEY not found in secrets!")
-            else:
-                st.success(f"✅ Key found: {api_key[:8]}...")
-                try:
-                    r = requests.post(
-                        "https://api.groq.com/openai/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {api_key}",
-                            "Content-Type": "application/json"
-                        },
-                        json={
-                            "model": "openai/gpt-oss-20b",
-                            "messages": [
-                                {"role": "user", "content": "Say hello in one word"}
-                            ],
-                            "stream": False
-                        },
-                        timeout=30
-                    )
-                    if r.status_code == 200:
-                        reply = r.json()["choices"][0]["message"]["content"]
-                        st.success(f"✅ API works! Response: {reply}")
-                    else:
-                        st.error(f"❌ API Error: {r.status_code} - {r.text}")
-                except Exception as e:
-                    st.error(f"❌ Exception: {e}")
 
     # ── Action Row ─────────────────────────────────────────
     col_a1, col_a2, col_a3, col_a4 = st.columns(4)
