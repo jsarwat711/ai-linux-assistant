@@ -776,6 +776,36 @@ with tab_chat:
         )
     with col_send:
         send_btn = st.button("⮕ Send", use_container_width=True, type="primary")
+        # TEMPORARY TEST BUTTON
+        if st.button("🧪 Test API Directly", use_container_width=True):
+            api_key = os.environ.get("GROQ_API_KEY", "")
+            if not api_key:
+                st.error("❌ GROQ_API_KEY not found in secrets!")
+            else:
+                st.success(f"✅ Key found: {api_key[:8]}...")
+                try:
+                    r = requests.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {api_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "llama3-8b-8192",
+                            "messages": [
+                                {"role": "user", "content": "Say hello in one word"}
+                            ],
+                            "stream": False
+                        },
+                        timeout=30
+                    )
+                    if r.status_code == 200:
+                        reply = r.json()["choices"][0]["message"]["content"]
+                        st.success(f"✅ API works! Response: {reply}")
+                    else:
+                        st.error(f"❌ API Error: {r.status_code} - {r.text}")
+                except Exception as e:
+                    st.error(f"❌ Exception: {e}")
 
     # ── Action Row ─────────────────────────────────────────
     col_a1, col_a2, col_a3, col_a4 = st.columns(4)
